@@ -1,24 +1,13 @@
-# README
+# Especialização Backend 2018.1 INJunior Gabarito
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Todas as intruções se encontram no arquivo tutorial_especialização.txt
 
-Things you may want to cover:
+Quasiquer dúvidas entrem em contato comigo
 
-* Ruby version
+Se quiserem baixar esse projeto e usar na máquina de vocês, abram um terminal
 
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+  git clone https://github.com/Perrut/especializacao_2018_1_gabarito
+  cd especializacao_2018_1_gabarito
+  bundle install
+  rails db:migrate
+  rails s
