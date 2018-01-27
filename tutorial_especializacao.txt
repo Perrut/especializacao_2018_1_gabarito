@@ -1,0 +1,240 @@
+SOCIAL APP
+
+- crie um novo projeto Rails:
+	rails new social_app
+	
+- acesse a pasta do seu projeto:
+	cd social_app
+	
+- crie um scaffold para usuario:
+	rails g scaffold usuario nome sobrenome email telefone data_nascimento:datetime
+	
+- rode a migration:
+	rails db:migrate
+	
+- crie um controller para podermos realizar o login no sistema
+	rails g controller sessoes new
+	
+- abra config/routes.rb	
+	- defina a rota principal como a página de login
+		root to: "sessoes#new"
+		
+- conserte a rota automática definida pelo rails para sessoes new para o nosso padrão
+	get 'login', to: "sessoes#new", as: :login
+
+- defina os métodos create e destroy no seu app/controllers/sessoes_controller.rb
+	def create
+	end
+	
+	def destroy
+	end
+	
+- adicione rotas para eles em seu config/routes.rb
+	post 'login', to: "sessoes#create"
+	delete 'logout', to: "sessoes#destroy", as: :logout
+	
+- subtitua o código de app/views/sessoes/new.html.erb pelo seguinte formulário para login
+	<h1>Login</h1>
+
+	<%= form_for :sessao, url: :login do |form| %>
+	  <%= form.label :email %>
+	  <%= form.email_field :email %>
+	  
+	  <%= form.label :senha %>
+	  <%= form.password_field :password %>
+	  
+	  <%= form.submit "Entrar" %>
+	<% end %>
+
+- faça validações em app/models/usuario.rb para garantir o mínimo de integridade no nosso bd
+	validates :nome, presence: true, length: { in: 2..20 }
+	validates :sobrenome, presence: true, length: { in: 2..80 }
+	validates :email, presence: true, length: { in: 5..40 }, uniqueness: true
+	validates :telefone, presence: true, length: { in: 8..14 }
+	validates :data_nascimento, presence: true
+	validate :data_correta
+
+	def data_correta
+	  if data_nascimento > (DateTime.now - 18.years)
+	    errors.add(:data_nascimento, "inválida, apenas para maiores de 18 anos.")
+	  elsif data_nascimento < (DateTime.now - 200.years)
+	    errors.add(:data_nascimento, "inválida.")
+	  end
+	end
+	
+- abra um novo terminal ou aba de terminal, acesse a pasta de seu sistema e rode o servidor com:
+	rails s
+
+- Edite o elemento seletor de data de app/views/usuarios/_form.html.erb
+	retire datetime_select, muda pra date_select e adicione o argumento: start_year: (DateTime.now - 200.years).year.to_i
+	
+	original:
+	<%= form.datetime_select :data_nascimento, id: :usuario_data_nascimento %>
+	
+	modificado:
+	<%= form.date_select :data_nascimento, id: :usuario_data_nascimento, start_year: (DateTime.now - 200.years).year.to_i %>
+
+- acesse localhost:3000/usuarios e crie um novo usuário
+
+- no seu gemfile, descomente a linha onde se localiza a gem bcrypt, encerre seu servidor (ctrl+c), rode:
+	bundle install
+	- e reinicie seu servidor (rails s)
+	
+- em seu arquivo app/models/usuario.rb, adicione:
+	has_secure_password para ganharmos os atributos password e password_confirmation
+	
+- gere uma migration para salvarmos nossa senha encriptada
+	rails g migration add_digest_to_usuarios password_digest
+	rails db:migrate
+	
+- agora altere seu formulário de usuario para receber a senha
+	em app/views/usuarios/_form.html.erb, inserir dentro do form, acima de submit:
+	
+	<div class="field">
+	  <%= form.label :password %>
+	  <%= form.password_field :password, id: :usuario_password %>
+	</div>
+
+	<div class="field">
+	  <%= form.label :password_confirmation %>
+	  <%= form.password_field :password_confirmation, id: :usuario_password_confirmation %>
+	</div>
+
+- permita a entrada dos parâmetros password e password_confirmation no seu app/controllers/usuarios_controller.rb
+	no método usuario_params, altere seu final, deixando dessa forma:
+	
+	# Never trust parameters from the scary internet, only allow the white list through.
+    def usuario_params
+      params.require(:usuario).permit(:nome, :sobrenome, :email, :telefone, :data_nascimento, :password, :password_confirmation)
+    end
+
+- edite seu app/models/usuario.rb para validar sua senha
+	validates :password, length: { in: 6..12 }, allow_nil: true
+	
+- acesse localhost:3000/usuarios, edite seu usuário adicionando uma senha
+
+- agora em app/controllers/sessoes_controller.rb, defina o corpo do método create
+	def create
+	  usuario = Usuario.find_by(email: params[:sessao][:email])
+	  if usuario && usuario.authenticate(params[:sessao][:password])
+	    log_in usuario
+	  else
+	    flash.now[:alert] = "Usuário ou senha incorretos."
+	    render "new"
+	  end
+	end
+	
+- defina o corpo do método destroy
+	def destroy
+	  log_out
+	end
+	
+- defina os métodos necessários para se executar o login em app/helpers/sessoes_helper.rb
+	def log_in(usuario)
+	  session[:usuario_id] = usuario.id
+	  redirect_to usuario
+	end
+	
+	def current_user
+	  nil || Usuario.find_by(id: session[:usuario_id])
+	end
+	
+	def logged_in?
+	  !current_user.nil?
+	end
+	
+	def log_out
+	  session.delete(:usuario_id)
+	  redirect_to login_path
+	end
+	
+- faça a importação de sessoes helper para a plicação inteira poder utilizá-lo, vá em app/controllers/application_controller.rb e adicione
+	include SessoesHelper
+	
+- defina os dois seguintes métodos em app/helpers/sessoes_helper.rb para impedir quando logado ou quando não logado
+	def usuario_logado
+	  if logged_in?
+	    flash[:alert] = "Não permitido."
+		redirect_to current_user
+	  end
+	end
+	
+	def usuario_nao_logado
+	  if !logged_in?
+	    flash[:alert] = "Por favor faça login."
+		redirect_to login_path
+	  end
+	end
+	
+- crie uma partial para exibir avisos no sistema, em app/views/layouts, crie um arquivo chamado _avisos.html.erb, adicione o seguinte conteúdo à esse arquivo:
+	<p><%= notice %></p>
+	<p><%= alert %></p>
+	
+- adicione a seguinte linha, acima de yield, em app/views/layouts/application.html.erb
+	<%= render "layouts/avisos" %>
+	
+- restrinja o login apenas para quando nãos houver logado no sistema, adicione no início de app/controllers/sessoes_controller.rb
+	before_action :usuario_logado, only: [:new, :create]
+	
+- adicione um link para logout em app/views/layouts/application.html.erb, acima de yield
+	<% if logged_in? %>
+	  <p>
+	    Olá <%= current_user.nome %>!
+	    <%= link_to "Logout", logout_path, method: :delete %>
+      </p>
+	<% end %>
+	
+- restrinja o cadastro apenas para usuarios não logados, adicionando no inicio de app/controllers/usuarios_controller.rb
+	before_action :usuario_logado, only: [:new, :create]
+	
+- restrinja outras ações de usuarios apenas para um usuário logado, adicionando no inicio de app/controllers/usuarios_controller.rb
+	before_action :usuario_nao_logado, except: [:new, :create]
+	
+- edite o arquivo de app/controllers/usuarios_controller.rb para que no momento em que um novo usuario for inserido, ele seja logado,
+para isso, você deve alterar o método create, ele ficará assim:
+
+	def create
+      @usuario = Usuario.new(usuario_params)
+
+      if @usuario.save
+        flash[:notice] = "Bemvindo à SocialzIN."
+		log_in @usuario
+      else
+        flash.now[:alert] = "Algo errado aconteceu."
+        render "new"
+      end
+    end
+	
+- crie um scaffold para os posts:
+	rails g scaffold post usuario:references conteudo
+	rails db:migrate
+	
+- impeça que qualquer ação de post seja executada se um usuário não estiver logado, para isso, no início de app/controllers/posts_controller.rb, adicione:
+	before_action :usuario_nao_logado
+	
+- edite o arquivo app/views/posts/_form.html.erb para que não seja necessário inserir o id do usuário e utilizar o id do usuário logado a hora de criar um post
+	substitua:
+	<div class="field">
+      <%= form.label :usuario_id %>
+      <%= form.text_field :usuario_id, id: :post_usuario_id %>
+	</div>
+	
+	por:
+	<%= hidden_field_tag "post[usuario_id]", current_user.id %>
+	
+- edite app/views/posts/show.html.erb para exibir o nome do autor do post
+	acrescente .nome em:
+	<%= @post.usuario %>
+	
+	ficará:
+	<%= @post.usuario.nome %>
+	
+- edite app/views/posts/index.html.erb para exibir o nome do autor do post
+	acrescente .nome em:
+	<%= post.usuario %>
+	
+	ficará:
+	<%= post.usuario.nome %>
+	
+- Adicione a macro has_many :posts, dependent: :destroy em app/models/usuario.rb para que ao se excluir um usuário, seus posts também sejam excluídos
+	has_many :posts, dependent: :destroy

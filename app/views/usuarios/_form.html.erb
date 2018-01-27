@@ -1,0 +1,52 @@
+<%= form_with(model: usuario, local: true) do |form| %>
+  <% if usuario.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(usuario.errors.count, "error") %> prohibited this usuario from being saved:</h2>
+
+      <ul>
+      <% usuario.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :nome %>
+    <%= form.text_field :nome, id: :usuario_nome %>
+  </div>
+
+  <div class="field">
+    <%= form.label :sobrenome %>
+    <%= form.text_field :sobrenome, id: :usuario_sobrenome %>
+  </div>
+
+  <div class="field">
+    <%= form.label :email %>
+    <%= form.text_field :email, id: :usuario_email %>
+  </div>
+
+  <div class="field">
+    <%= form.label :telefone %>
+    <%= form.text_field :telefone, id: :usuario_telefone %>
+  </div>
+
+  <div class="field">
+    <%= form.label :data_nascimento %>
+    <%= form.date_select :data_nascimento, id: :usuario_data_nascimento, start_year: (DateTime.now - 200.years).year.to_i %>
+  </div>
+  
+  <div class="field">
+    <%= form.label :password %>
+    <%= form.password_field :password, id: :usuario_password %>
+  </div>
+  
+  <div class="field">
+    <%= form.label :password_confirmation %>
+    <%= form.password_field :password_confirmation, id: :usuario_password_confirmation %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+<% end %>
