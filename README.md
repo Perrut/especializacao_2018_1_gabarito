@@ -4,7 +4,7 @@ Todas as intruções se encontram no arquivo tutorial_especialização.txt
 
 Quasiquer dúvidas entrem em contato comigo
 
-Se quiserem baixar esse projeto e usar na máquina de vocês, abram um terminal
+Se quiserem baixar esse projeto e usar na máquina de vocês, abram um terminal:
 
   git clone https://github.com/Perrut/especializacao_2018_1_gabarito
   
